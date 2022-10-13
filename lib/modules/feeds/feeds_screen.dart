@@ -7,6 +7,9 @@ import 'package:social_app/shared/cubit/states.dart';
 import 'package:social_app/shared/styles/colors.dart';
 import 'package:social_app/shared/styles/icon_broken.dart';
 
+import '../../shared/components/components.dart';
+import '../comment/comment_screen.dart';
+
 class FeedsScreen extends StatelessWidget {
   const FeedsScreen({Key? key}) : super(key: key);
 
@@ -267,7 +270,7 @@ class FeedsScreen extends StatelessWidget {
                             width: 5.0,
                           ),
                           Text(
-                            '0 comment',
+                            '${SocialCubit.get(context).commentNumber[SocialCubit.get(context).postsId[index]]} comment',
                             style: Theme.of(context).textTheme.caption,
                           ),
                         ],
@@ -315,7 +318,7 @@ class FeedsScreen extends StatelessWidget {
                     ],
                   ),
                   onTap: () {
-                    SocialCubit.get(context).writeComment(SocialCubit.get(context).postsId[index]);
+                    navigateTo(context, CommentScreen(postId: SocialCubit.get(context).postsId[index],));
                   },
                 ),
               ),
