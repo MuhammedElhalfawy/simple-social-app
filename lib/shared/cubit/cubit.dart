@@ -15,6 +15,7 @@ import 'package:social_app/modules/new_post/new_post_screen.dart';
 import 'package:social_app/modules/settings/settings_screen.dart';
 import 'package:social_app/modules/users/users_screen.dart';
 import 'package:social_app/shared/cubit/states.dart';
+import '../../models/comment_model.dart';
 import '../components/constants.dart';
 import 'package:firebase_storage/firebase_storage.dart' as firebase_storage;
 
@@ -267,6 +268,7 @@ class SocialCubit extends Cubit<SocialStates> {
   List<PostModel> posts = [];
   List<String> postsId = [];
   List<int> likes = [];
+  Map<String, int> commentNumber = {};
 
   void getPosts() {
     FirebaseFirestore.instance
@@ -274,6 +276,15 @@ class SocialCubit extends Cubit<SocialStates> {
         .orderBy('dateTime', descending: true)
         .get()
         .then((value) async {
+      for (var element in value.docs) {
+        await element.reference.collection('comments').get().then((value) {
+          commentNumber.addAll({element.id: value.docs.length});
+
+          print(
+              '=======================>>>>> Comments Number ${commentNumber[element.id]}');
+        }).catchError((error) {});
+      }
+
       for (var element in value.docs) {
         await element.reference.collection('likes').get().then((value) {
           likes.add(value.docs.length);
@@ -303,18 +314,46 @@ class SocialCubit extends Cubit<SocialStates> {
     });
   }
 
-  void writeComment(String postId) {
+  void commentPost({
+    required String postId,
+    required String dateTime,
+    required String text,
+  }) {
+    CommentModel model = CommentModel(
+      name: userModel!.name,
+      uId: userModel!.uId,
+      imageProfile: userModel!.image,
+      dateTime: dateTime,
+      text: text,
+    );
+
     FirebaseFirestore.instance
         .collection('posts')
         .doc(postId)
         .collection('comments')
-        .doc(userModel?.uId)
-        .set({
-      'comment': true,
-    }).then((value) {
-      emit(SocialWriteCommentSuccessState());
+        .add(model.toMap())
+        .then((value) {
+      emit(SocialCommentPostSuccessState());
     }).catchError((error) {
-      emit(SocialWriteCommentErrorState(error.toString()));
+      emit(SocialCommentPostErrorState(error.toString()));
+    });
+  }
+
+  List<CommentModel> comments = [];
+
+  void getComments(String postId) {
+    FirebaseFirestore.instance
+        .collection('posts')
+        .doc(postId)
+        .collection('comments')
+        .orderBy('dateTime')
+        .snapshots()
+        .listen((event) {
+      comments = [];
+      event.docs.forEach((element) {
+        comments.add(CommentModel.fromJson(element.data()));
+      });
+      emit(SocialGetCommentSuccessState());
     });
   }
 
